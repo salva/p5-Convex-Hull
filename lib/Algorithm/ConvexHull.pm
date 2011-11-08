@@ -123,6 +123,8 @@ L<http://www.algorithmist.com/index.php/Monotone_Chain_Convex_Hull>.
 
 Implement other algorithms and support the 3D case.
 
+Add an XS version.
+
 =head1 COPYRIGHT AND LICENSE
 
 Copyright (C) 2011 by Salvador FandiE<ntilde>o (sfandino@yahoo.com).
