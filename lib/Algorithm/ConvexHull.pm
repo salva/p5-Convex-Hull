@@ -1,80 +1,131 @@
 package Algorithm::ConvexHull;
 
-use 5.012004;
+our $VERSION = 0.01;
+
 use strict;
 use warnings;
 
 require Exporter;
-
 our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(convex_hull_2d);
 
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
+BEGIN {
+    local ($@, $SIG{__DIE__});
+    unless (eval "use Sort::Key::Radix qw(nkeysort); 1") {
+        no strict 'refs';
+        *nkeysort = sub (&@) {
+            shift;
+            sort { $a->[0] <=> $b->[0] } @_
+        }
+    }
+}
 
-# This allows declaration	use Algorithm::ConvexHull ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
-our %EXPORT_TAGS = ( 'all' => [ qw(
-	
-) ] );
+sub convex_hull_2d {
+    return @_ if @_ < 2;
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+    my @p = nkeysort { $_->[0] } @_;
 
-our @EXPORT = qw(
-	
-);
+    my (@u, @l);
+    my $i = 0;
+    while ($i < @p) {
+        my $iu = my $il = $i;
+        my ($x, $yu) = @{$p[$i]};
+        my $yl = $yu;
+        # search for upper and lower Y for the current X
+        while (++$i < @p and $p[$i][0] == $x) {
+            my $y = $p[$i][1];
+            if ($y < $yl) {
+                $il = $i;
+                $yl = $y;
+            }
+            elsif ($y > $yu) {
+                $iu = $i;
+                $yu = $y;
+            }
+        }
+        while (@l >= 2) {
+            my ($ox, $oy) = @{$l[-2]};
+            last if ($l[-1][1] - $oy) * ($x - $ox) < ($yl - $oy) * ($l[-1][0] - $ox);
+            pop @l;
+        }
+        push @l, $p[$il];
+        while (@u >= 2) {
+            my ($ox, $oy) = @{$u[-2]};
+            last if ($u[-1][1] - $oy) * ($x - $ox) > ($yu - $oy) * ($u[-1][0] - $ox);
+            pop @u;
+        }
+        push @u, $p[$iu];
+    }
 
-our $VERSION = '0.01';
+    # remove points from the upper hull extremes when they are already
+    # on the lower hull:
+    shift @u if $u[0][1] == $l[0][1];
+    pop @u if @u and $u[-1][1] == $l[-1][1];
 
-
-# Preloaded methods go here.
+    return (@l, reverse @u);
+}
 
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
+
 
 =head1 NAME
 
-Algorithm::ConvexHull - Perl extension for blah blah blah
+Algorithm::ConvexHull - Calculate the convex hull of a set of 2D points
 
 =head1 SYNOPSIS
 
-  use Algorithm::ConvexHull;
-  blah blah blah
+  use Algorithm::ConvexHull qw(convex_hull_2d);
+  my @ch = convex_hull_2d([$x0, $y0], [$x1, $y1],...,[$xn, $yn]);
 
 =head1 DESCRIPTION
 
-Stub documentation for Algorithm::ConvexHull, created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
+This package implements a variation of the Andrew's monotone chain
+convex hull algorithm that is able to generate the convex hull of an
+arbitrary set of 2D points.
 
-Blah blah blah.
+When the module L<Sort::Key::Radix> is also installed, this module
+uses it to sort the set of points making the algorithm O(N).
 
-=head2 EXPORT
+Otherwise, Perl builtin sorting algorithm is using resulting in a
+O(N*logN) complexity algorithm.
 
-None by default.
+=head2 API
 
+This module provides the following functions:
 
+=over 4
+
+=item @ch = convex_hull_2d(@points2d)
+
+Return the ordered list of points forming the convex hull.
+
+The values returned are not copies but references to the same arrays
+passed as input.
+
+=back
 
 =head1 SEE ALSO
 
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
+There are other modules in CPAN implementing convex hull algorithms:
+L<Math::ConvexHull>, L<Math::Geometry::Planar>,
+L<Math::Polygon::Convex>.
 
-If you have a mailing list set up for your module, mention it here.
+Wikipedia page about the convex hull: L<http://en.wikipedia.org/wiki/Convex_hull_algorithms>.
 
-If you have a web site set up for your module, mention it here.
+Monotone chain algorithm description at Wikibooks:
+L<http://en.wikibooks.org/wiki/Algorithm_Implementation/Geometry/Convex_hull/Monotone_chain>
 
-=head1 AUTHOR
+Monotone chain algorithm description at Algorithmist:
+L<http://www.algorithmist.com/index.php/Monotone_Chain_Convex_Hull>.
 
-Salvador Fandino, E<lt>salva@E<gt>
+=head1 TODO
+
+Implement other algorithms and support the 3D case.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2011 by Salvador Fandino
+Copyright (C) 2011 by Salvador FandiE<ntilde>o (sfandino@yahoo.com).
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.12.4 or,
