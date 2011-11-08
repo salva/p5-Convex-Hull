@@ -1,0 +1,6 @@
+Revision history for Perl extension Algorithm::ConvexHull.
+
+0.01  Tue Nov  8 12:36:29 2011
+	- original version; created by h2xs 1.23 with options
+		-AXn Algorithm::ConvexHull
+
